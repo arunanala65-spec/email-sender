@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Email Sender — Aruna</title>
+<style>
+:root{color-scheme:dark light}
+body{font-family:system-ui,Arial,sans-serif;max-width:760px;margin:0 auto;padding:16px;background:#0f1115;color:#e8e8e8}
+@media (prefers-color-scheme:light){body{background:#f6f7f9;color:#111}input,select,textarea{background:#fff!important;color:#111!important;border-color:#ccc!important}label{color:#333!important}#preview{background:#fff}.note{color:#555!important}}
+h1{font-size:20px;margin:4px 0 2px} p.sub{color:#9aa;margin:0 0 16px;font-size:13px}
+label{display:block;font-size:13px;margin:12px 0 4px;color:#c8c8c8}
+input,select,textarea{width:100%;box-sizing:border-box;padding:9px;border-radius:8px;border:1px solid #333;background:#1a1d24;color:#eee;font-size:14px}
+textarea{font-family:ui-monospace,monospace}
+.row{display:flex;gap:10px}.row>*{flex:1}
+button{padding:11px 18px;border:0;border-radius:8px;font-size:15px;cursor:pointer;margin-top:16px}
+#sendBtn{background:#22c55e;color:#06210f;font-weight:700}
+#testBtn{background:#334155;color:#fff;margin-left:8px}
+.tpl{background:#1e293b;color:#fff;padding:8px 12px;font-size:13px;margin:6px 6px 0 0}
+#status{margin-top:14px;padding:12px;border-radius:8px;display:none;font-size:14px;white-space:pre-wrap;word-break:break-word}
+.ok{background:#052e16;color:#bbf7d0}.err{background:#450a0a;color:#fecaca}
+#preview{border:1px solid #333;border-radius:8px;background:#fff;color:#000;min-height:120px;padding:12px;margin-top:8px}
+.hidden{display:none}
+.note{font-size:12px;color:#9aa;margin-top:16px;line-height:1.5}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+th,td{border:1px solid #333;padding:6px;text-align:left;word-break:break-word}
+th{background:#1a1d24}
+.badge{padding:2px 7px;border-radius:99px;font-size:11px}
+.badge.ok{background:#052e16;color:#bbf7d0}.badge.err{background:#450a0a;color:#fecaca}
+#attachInfo{font-size:12px;color:#9aa;margin-top:4px}
+</style>
+</head>
+<body>
+<h1>✉️ Email Sender</h1>
+<p class="sub">SMTP &amp; API key: AWS SES, SendGrid, Mailgun, Mailjet, Brevo, Resend — HTML letter + lampiran.</p>
+
+<label>Password aplikasi (kalau diaktifkan di hosting)</label>
+<input id="appPass" type="password" placeholder="Kosongkan kalau tidak ada" autocomplete="off">
+
+<label>Provider</label>
+<select id="provider">
+  <option value="smtp">SMTP (generik — Gmail, SES SMTP, dll)</option>
+  <option value="ses">AWS SES (API)</option>
+  <option value="sendgrid">SendGrid (API)</option>
+  <option value="mailgun">Mailgun (API)</option>
+  <option value="mailjet">Mailjet (API)</option>
+  <option value="brevo">Brevo (API)</option>
+  <option value="resend">Resend (API)</option>
+</select>
+
+<div id="f-smtp">
+  <div class="row"><div><label>SMTP Host</label><input id="SMTP_HOST" placeholder="email-smtp.ap-south-1.amazonaws.com"></div>
+  <div><label>Port</label><input id="SMTP_PORT" value="587"></div></div>
+  <div class="row"><div><label>TLS/SSL (secure)</label><select id="SMTP_SECURE"><option value="false">Tidak (port 587, STARTTLS)</option><option value="true">Ya (port 465, SSL)</option></select></div></div>
+  <div class="row"><div><label>SMTP Username</label><input id="SMTP_USER" autocomplete="off"></div>
+  <div><label>SMTP Password</label><input id="SMTP_PASS" type="password" autocomplete="off"></div></div>
+</div>
+<div id="f-ses" class="hidden">
+  <div class="row"><div><label>AWS Region</label><input id="AWS_REGION" value="ap-south-1"></div></div>
+  <div class="row"><div><label>Access Key ID</label><input id="AWS_ACCESS_KEY_ID" autocomplete="off"></div>
+  <div><label>Secret Access Key</label><input id="AWS_SECRET_ACCESS_KEY" type="password" autocomplete="off"></div></div>
+  <p class="note">Pakai kunci AWS SES milikmu sendiri. Kalau akun SES masih sandbox, pengirim &amp; penerima harus terverifikasi di SES.</p>
+</div>
+<div id="f-sendgrid" class="hidden"><label>SendGrid API Key</label><input id="SENDGRID_API_KEY" type="password" autocomplete="off"></div>
+<div id="f-mailgun" class="hidden">
+  <div class="row"><div><label>Mailgun API Key</label><input id="MAILGUN_API_KEY" type="password" autocomplete="off"></div>
+  <div><label>Mailgun Domain</label><input id="MAILGUN_DOMAIN" placeholder="mg.contoh.com"></div></div>
+  <div class="row"><div><label>Mailgun Region</label><select id="MAILGUN_REGION"><option value="us">US (api.mailgun.net)</option><option value="eu">EU (api.eu.mailgun.net)</option></select></div></div>
+</div>
+<div id="f-mailjet" class="hidden">
+  <div class="row"><div><label>Mailjet API Key</label><input id="MAILJET_API_KEY" autocomplete="off"></div>
+  <div><label>Mailjet Secret Key</label><input id="MAILJET_SECRET_KEY" type="password" autocomplete="off"></div></div>
+</div>
+<div id="f-brevo" class="hidden"><label>Brevo API Key</label><input id="BREVO_API_KEY" type="password" autocomplete="off"></div>
+<div id="f-resend" class="hidden"><label>Resend API Key</label><input id="RESEND_API_KEY" type="password" autocomplete="off"></div>
+
+<label><input type="checkbox" id="remember" style="width:auto"> Ingat kredensial di browser ini saja (localStorage)</label>
+
+<hr style="border-color:#222;margin-top:18px">
+<div class="row"><div><label>Nama pengirim (From name)</label><input id="fromName" placeholder="Aruna Nala"></div>
+<div><label>Email pengirim (From — harus terverifikasi di provider)</label><input id="from" placeholder="mailing@ecell.in"></div></div>
+<label>Reply-To (opsional — balasan masuk ke alamat ini)</label>
+<input id="replyTo" placeholder="balasan@contoh.com">
+<label>To (penerima — pisah koma / baris baru, maks 50)</label>
+<textarea id="to" rows="2" placeholder="arunanala65@gmail.com"></textarea>
+<div class="row"><div><label>Cc (opsional)</label><input id="cc"></div>
+<div><label>Bcc (opsional)</label><input id="bcc"></div></div>
+<label>Subjek</label>
+<input id="subject" placeholder="Test AWS SES — Aruna">
+
+<label>Template HTML letter (klik untuk isi)</label>
+<div>
+  <button type="button" class="tpl" data-tpl="formal">📄 Surat Formal</button>
+  <button type="button" class="tpl" data-tpl="promo">🎉 Promo</button>
+  <button type="button" class="tpl" data-tpl="newsletter">📰 Newsletter</button>
+</div>
+
+<label>HTML Letter</label>
+<textarea id="html" rows="10" placeholder="&lt;h1&gt;Halo&lt;/h1&gt;&lt;p&gt;Isi surat di sini...&lt;/p&gt;"></textarea>
+
+<label>Lampiran (total maks 5 MB)</label>
+<input id="attachments" type="file" multiple>
+<div id="attachInfo"></div>
+
+<label>Live Preview (otomatis mengikuti isi HTML di atas)</label>
+<div id="preview"><i>(HTML masih kosong)</i></div>
+
+<button id="sendBtn">📤 Kirim Email</button>
+<button id="testBtn">🔌 Tes Koneksi</button>
+<div id="status"></div>
+
+<h2 style="font-size:16px;margin-top:28px">🕘 Riwayat Kirim</h2>
+<button type="button" id="refreshHistory" style="background:#1e293b;color:#fff;padding:8px 14px;font-size:13px;margin-top:4px">Muat ulang riwayat</button>
+<div style="overflow-x:auto"><table id="historyTable">
+<thead><tr><th>Waktu</th><th>Provider</th><th>Ke</th><th>Subjek</th><th>Status</th><th>Message ID / Error</th></tr></thead>
+<tbody><tr><td colspan="6"><i>Belum ada riwayat.</i></td></tr></tbody>
+</table></div>
+
+<p class="note">⚠️ Kredensial dikirim ke server hanya saat tombol ditekan, tidak disimpan di server.
+Jangan kirim massal / spam: akun SES ecell.in bounce-nya sudah 4,3% (batas jeda 5%) dan complaint 0,21% (ambang 0,1%) — akun bisa dibatasi. Pakai untuk tes &amp; kirim seperlunya.
+Kunci AWS yang pernah ditempel di chat harus dirotasi di konsol AWS.</p>
+
+<script>
+const $ = id => document.getElementById(id);
+const FIELDS = ['SMTP_HOST','SMTP_PORT','SMTP_SECURE','SMTP_USER','SMTP_PASS','AWS_REGION','AWS_ACCESS_KEY_ID','AWS_SECRET_ACCESS_KEY','SENDGRID_API_KEY','MAILGUN_API_KEY','MAILGUN_DOMAIN','MAILGUN_REGION','MAILJET_API_KEY','MAILJET_SECRET_KEY','BREVO_API_KEY','RESEND_API_KEY'];
+
+const TEMPLATES = {
+formal: `<!doctype html><html><body style="font-family:Georgia,serif;color:#222;max-width:600px;margin:0 auto;padding:24px">
+<p style="text-align:right;color:#666">Jakarta, 20 November 2026</p>
+<p>Yth. Bapak/Ibu,<br><b>[Nama Penerima]</b></p>
+<p>Dengan hormat,</p>
+<p>Melalui surat ini, kami menyampaikan [isi surat Anda di sini]. Kami berharap dapat bekerja sama dengan baik dan saling menguntungkan.</p>
+<p>Atas perhatian Bapak/Ibu, kami ucapkan terima kasih.</p>
+<p>Hormat kami,<br><b>[Nama Anda]</b><br>[Jabatan / Perusahaan]</p>
+</body></html>`,
+promo: `<!doctype html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:0;background:#fff5f5">
+<div style="background:#dc2626;color:#fff;padding:28px;text-align:center"><h1 style="margin:0">🎉 PROMO SPESIAL!</h1><p style="margin:8px 0 0">Diskon hingga 50% — hari ini saja</p></div>
+<div style="padding:24px;color:#222"><p>Halo!</p><p>[Tulis penawaran Anda di sini — produk, harga, dan cara klaim.]</p>
+<p style="text-align:center"><a href="https://contoh.com" style="background:#dc2626;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold">Klaim Sekarang</a></p>
+<p style="color:#666;font-size:12px">Promo berlaku sampai [tanggal]. Syarat &amp; ketentuan berlaku.</p></div>
+</body></html>`,
+newsletter: `<!doctype html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:0;color:#222">
+<div style="background:#1e293b;color:#fff;padding:20px"><h1 style="margin:0;font-size:22px">📰 Newsletter — [Bulan Tahun]</h1></div>
+<div style="padding:20px">
+<h2 style="color:#1e293b">📌 Kabar Terbaru</h2>
+<p>[Ringkasan berita atau update pertama Anda.]</p>
+<h2 style="color:#1e293b">✨ Sorotan Minggu Ini</h2>
+<p>[Sorotan kedua Anda.]</p>
+<p style="color:#666;font-size:12px;border-top:1px solid #ddd;padding-top:12px">Anda menerima email ini karena berlangganan newsletter kami. <a href="#">Berhenti berlangganan</a></p>
+</div></body></html>`
+};
+
+function showProvider(){
+  const p = $('provider').value;
+  for (const k of ['smtp','ses','sendgrid','mailgun','mailjet','brevo','resend'])
+    $('f-'+k).classList.toggle('hidden', k !== p);
+}
+$('provider').addEventListener('change', showProvider); showProvider();
+
+function creds(){
+  const c = {}; for (const f of FIELDS) c[f] = $(f).value.trim();
+  return c;
+}
+function payload(){
+  return { provider: $('provider').value, creds: creds(),
+    fromName: $('fromName').value.trim(), from: $('from').value.trim(),
+    replyTo: $('replyTo').value.trim(), to: $('to').value, cc: $('cc').value, bcc: $('bcc').value,
+    subject: $('subject').value, html: $('html').value };
+}
+function headers(){ return { 'Content-Type':'application/json', 'x-app-password': $('appPass').value }; }
+function show(msg, ok){
+  const s = $('status'); s.style.display='block'; s.className = ok ? 'ok' : 'err'; s.textContent = msg;
+}
+async function call(path){
+  show('Mengirim...', true);
+  try{
+    let r;
+    if (path === '/api/send' && $('attachments').files.length) {
+      const fd = new FormData();
+      const p = payload();
+      for (const [k,v] of Object.entries(p)) fd.append(k, k === 'creds' ? JSON.stringify(v) : v);
+      for (const f of $('attachments').files) fd.append('attachments', f);
+      r = await fetch(path, { method:'POST', headers: { 'x-app-password': $('appPass').value }, body: fd });
+    } else {
+      r = await fetch(path, { method:'POST', headers: headers(), body: JSON.stringify(payload()) });
+    }
+    const j = await r.json();
+    show((j.ok ? '✅ ' : '❌ ') + (j.message || j.error || '') + (j.messageId ? '\nMessage ID: ' + j.messageId : ''), !!j.ok);
+    if (j.ok) loadHistory();
+  }catch(e){ show('❌ Gagal terhubung ke server: ' + e.message, false); }
+}
+$('sendBtn').onclick = () => { saveRemember(); call('/api/send'); };
+$('testBtn').onclick = () => { saveRemember(); call('/api/test'); };
+
+// Live preview
+function updatePreview(){
+  const v = $('html').value.trim();
+  $('preview').innerHTML = v || '<i>(HTML masih kosong)</i>';
+}
+$('html').addEventListener('input', updatePreview);
+
+// Template
+document.querySelectorAll('[data-tpl]').forEach(b => b.onclick = () => {
+  $('html').value = TEMPLATES[b.dataset.tpl];
+  updatePreview();
+});
+
+// Lampiran: info total ukuran
+$('attachments').addEventListener('change', () => {
+  const files = [...$('attachments').files];
+  const total = files.reduce((n,f) => n + f.size, 0);
+  $('attachInfo').textContent = files.length
+    ? files.map(f => f.name).join(', ') + ' — total ' + (total/1024).toFixed(1) + ' KB / 5120 KB'
+    : '';
+  if (total > 5*1024*1024) $('attachInfo').textContent += ' ⚠️ MELEBIHI 5 MB!';
+});
+
+// Riwayat
+async function loadHistory(){
+  try{
+    const r = await fetch('/api/history', { headers: { 'x-app-password': $('appPass').value } });
+    const j = await r.json();
+    const tb = document.querySelector('#historyTable tbody');
+    if (!j.ok || !j.history || !j.history.length) { tb.innerHTML = '<tr><td colspan="6"><i>Belum ada riwayat.</i></td></tr>'; return; }
+    tb.innerHTML = j.history.map(h => `<tr>
+      <td>${new Date(h.time).toLocaleString('id-ID')}</td>
+      <td>${h.provider}</td><td>${h.to || ''}</td><td>${h.subject || ''}</td>
+      <td><span class="badge ${h.status === 'terkirim' ? 'ok' : 'err'}">${h.status}</span></td>
+      <td>${(h.messageId || h.error || '').slice(0, 200)}</td></tr>`).join('');
+  }catch(e){}
+}
+$('refreshHistory').onclick = loadHistory;
+loadHistory();
+
+function saveRemember(){
+  if ($('remember').checked) localStorage.setItem('emailSenderCreds', JSON.stringify(creds()));
+  else localStorage.removeItem('emailSenderCreds');
+}
+(function loadRemember(){
+  try{
+    const saved = JSON.parse(localStorage.getItem('emailSenderCreds') || 'null');
+    if (saved){ $('remember').checked = true; for (const f of FIELDS) if (saved[f]) $(f).value = saved[f]; }
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
